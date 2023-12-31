@@ -1,73 +1,95 @@
-import './index.css'
+import React, { useState } from "react";
 
-import React, { useState } from 'react';
+import axios from "axios";
 
-import axios from 'axios';
+function LoadingModal({ show }) {
+  if (!show) {
+    return null;
+  }
 
-const initialState = {
-  id: '',
-  pw: '',
-};
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+      }}
+    >
+      <div
+        style={{
+          padding: "20px",
+          backgroundColor: "white",
+          borderRadius: "10px",
+        }}
+      >
+        로딩 중...
+      </div>
+    </div>
+  );
+}
 
-const App = () => {
-  const [user, setUser] = useState(initialState);
-  const [loading, setLoading] = useState(false);
+export default function App() {
+  const [id, setId] = useState("");
+  const [pw, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUser((prevUser) => ({ ...prevUser, [name]: value }));
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    switch (name) {
+      case "id":
+        setId(value);
+        break;
+      case "pw":
+        setPassword(value);
+        break;
+      default:
+        break;
+    }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleClick = async (event) => {
+    event.preventDefault();
 
-    if (!user.id || !user.pw) {
-      alert('아이디와 비밀번호를 입력하세요.');
+    if (id === "" || pw === "") {
+      alert("아이디 혹은 비밀번호가 입력되지 않았습니다.");
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      const response = await axios.post('API_ENDPOINT', {
-        id: user.id,
-        pw: user.pw,
+      const response = await axios.post("http://localhost:3000/user/login", {
+        id: id,
+        pw: pw,
       });
 
-      setLoading(false);
-
-      setTimeout(() => {
-        console.log('Loading Complete');
-      }, 1500);
-
-      if (response.data.code === 200) {
-        console.log('로그인 성공!', response.data.userInfo);
+      if (response.data.result) {
+        localStorage.setItem("id", id);
+        localStorage.setItem("token", response.data.result.AccessToken);
+        console.log("로그인 성공", response.data);
       } else {
-        alert('로그인 실패. 다시 시도하세요.');
+        console.log("로그인 실패", response.data);
       }
     } catch (error) {
-      console.error('API 통신 오류:', error);
-      setLoading(false); 
+      console.log("로그인 요청 실패", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>
-        ID:
-        <input type="text" name="id" value={user.id} onChange={handleChange} />
-      </label>
-      <br />
-      <label>
-        Password:
-        <input type="password" name="pw" value={user.pw} onChange={handleChange} />
-      </label>
-      <br />
-      <button type="submit" disabled={loading}>
-        {loading ? 'Loading...' : '로그인'}
-      </button>
-    </form>
+    <div>
+      <input name="id" value={id} onChange={handleChange} />
+      <input name="pw" value={pw} type="password" onChange={handleChange} />
+      <input type="submit" value={"로그인"} onClick={handleClick} disabled={isLoading} />
+      <LoadingModal show={isLoading} />
+    </div>
   );
-};
-
-export default App;
+}
